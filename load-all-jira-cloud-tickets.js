@@ -142,21 +142,17 @@
     }
 
     window.onkeydown = function(e){
-        e.stopPropagation();
         if (e.key === "f" && (e.ctrlKey || e.metaKey)) {
             // console.log("ctrl+f or cmd+f");
             mainFunction((element) => {});
         } else if (e.key === "p" && !e.ctrlKey && !e.metaKey) {
             // console.log("only p, without ctrl or cmd");
-            e.stopPropagation();
             mainFunction((element) => {findTicketWithText(element, "**READY TO PLAN**")});
         } else if (e.key === "r" && !e.ctrlKey && !e.metaKey) {
             // console.log("only r, without ctrl or cmd");
-            e.stopPropagation();
             mainFunction((element) => {findTicketWithText(element, "**TO REFINE**")});
         } else if (e.key === "n" && !e.ctrlKey && !e.metaKey) {
             // console.log("only n, without ctrl or cmd");
-            e.stopPropagation();
             mainFunction((element) => {findTicketWithText(element, "**NEW TO BE CATEGORISED**")});
         }
     }
