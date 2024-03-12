@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Load all jira cloud tickets
 // @namespace    http://tampermonkey.net/
-// @version      2024-03-07
+// @version      2024-03-12
 // @description  Main function is to load all jira tickets on the backlog page in jira cloud to allow ctrl+f/cmd+f
 // @author       Matthijs de Wit
-// @match        https://afklm.atlassian.net/jira/software/c/projects/*/boards/*/backlog
+// @match        https://afklm.atlassian.net/jira/software/c/projects/*/boards/*/backlog*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        none
 // ==/UserScript==
@@ -14,8 +14,10 @@
 
     let doneScrolling = false;
     const sectionListItemsMap = {};
+    const uniqueClassId = "tmprmnky";
 
     const iterSections = (element, f) => {
+        // iterates over all sections of the backlog and executes function f within each section, with an option to break the loop
         const sections = element.childNodes;
         for (let i = 2; i < element.childNodes.length; i++) {
             const section = element.childNodes[i];
@@ -61,7 +63,36 @@
 
         let originalPos = 0;
 
+        const syncRows = () => {
+            // keeps manually added rows in sync, so when moving them around it works as expected.
+            console.log("syncing rows");
+
+            iterSections(element, (sectionId, listDiv) => {
+                for (let jiraListItem of listDiv.childNodes) {
+                    if (jiraListItem.nodeName !== "DIV") continue;
+                    if (jiraListItem.classList.contains(uniqueClassId)) continue; // skip the ones added by this script
+
+                    // now update the rows added by this script
+                    for (let tmprListItem of listDiv.childNodes) {
+                        if (tmprListItem.nodeName !== "DIV") continue;
+                        if (!tmprListItem.classList.contains(uniqueClassId)) continue; // skip the ones added by jira
+
+                        if (jiraListItem.style !== undefined && tmprListItem.style !== undefined &&
+                           jiraListItem.style.top === tmprListItem.style.top) {
+                            //console.log("jiraListItem", jiraListItem);
+                            //console.log("tmprListItem", tmprListItem);
+
+                            tmprListItem.innerHTML = jiraListItem.innerHTML;
+                            break;
+                        }
+                    }
+                }
+            });
+            setTimeout(syncRows, 10000); // sync every ten seconds
+        }
+
         const fillInRows = () => {
+            // manually force the rows into each section, and since they are added manually they are not bound to any jira code.
             console.log("start filling in rows into sections");
 
             iterSections(element, (sectionId, listDiv) => {
@@ -74,16 +105,21 @@
                 //const listDivItems = Array.from(listDiv.childNodes);
                 for (let listItem of sectionListItemsMap[sectionId]) {
                     // lol, we don't need to check if elements already exist, this way works actually better
+                    listItem.classList.add(uniqueClassId);
+                    listItem.style.zIndex = -999; // make sure it's behind other elements
                     listDiv.appendChild(listItem);
                 }
 
                 console.log("number of elements in section after insert:", listDiv.childElementCount);
                 // console.log(listDiv);
             });
-            cb(element); // don't forget to execture callback method
+            setTimeout(syncRows, 10000);
+            cb(element); // don't forget to execute callback method
         }
 
         const scrollInSteps = () => {
+            // iterate by scrolling over the page and storing rows in view into a map
+
             iterSections(element, (sectionId, listDiv) => {
                 if (sectionListItemsMap[sectionId] === undefined) {
                     sectionListItemsMap[sectionId] = [];
@@ -94,12 +130,12 @@
                 for (let listItem of listDiv.childNodes) {
                     if (listItem.nodeName !== "DIV") continue;
                     if(!sectionListItemsMap[sectionId].some((el) => el.style !== undefined && el.style.top === listItem.style.top)) {
-                        sectionListItemsMap[sectionId].push(listItem);
+                        sectionListItemsMap[sectionId].push(listItem.cloneNode(true));
                     }
                 }
             });
 
-            // scroll down a bit, unless at bottom, then scroll back to top
+            // scroll down a bit, unless at bottom, then scroll back to original position
             // console.log(currentPos);
             // console.log(bottom);
             if (currentPos < bottom) {
