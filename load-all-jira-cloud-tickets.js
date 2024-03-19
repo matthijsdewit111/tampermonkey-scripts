@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Load all jira cloud tickets
 // @namespace    http://tampermonkey.net/
-// @version      2024-03-12
+// @version      2024-03-19
 // @description  Main function is to load all jira tickets on the backlog page in jira cloud to allow ctrl+f/cmd+f
 // @author       Matthijs de Wit
 // @match        https://afklm.atlassian.net/jira/software/c/projects/*/boards/*/backlog*
@@ -22,7 +22,7 @@
         for (let i = 2; i < element.childNodes.length; i++) {
             const section = element.childNodes[i];
 
-            if (section.attributes['data-testid'].value.endsWith("divider.container")) {
+            if (section.attributes['data-testid'] === undefined || section.attributes['data-testid'].value.endsWith("divider.container")) {
                 continue;
             }
 
